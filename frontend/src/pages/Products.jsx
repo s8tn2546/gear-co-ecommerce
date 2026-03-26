@@ -19,7 +19,7 @@ export default function Products() {
     fetch('http://localhost:5000/api/products')
       .then(res => res.json())
       .then(data => { 
-        if(data.length > 0) {}
+        if(data.length > 0) setProducts(data.map(p => ({ ...p, image: p.imageUrl })));
       })
       .catch(err => console.log('Using robust mock data.'));
   }, []);

@@ -66,12 +66,21 @@ const Navbar = () => {
 };
 
 const Home = () => {
-  const featured = [
+  const [featured, setFeatured] = useState([
     { id: '1', name: 'Citizen Messenger Bag', price: 140.00, image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800' },
     { id: '2', name: 'Barrage Cargo Backpack', price: 160.00, image: 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&q=80&w=800' },
     { id: '3', name: 'Kadet Sling Bag', price: 95.00, image: 'https://images.unsplash.com/photo-1491637639811-60e2756cc1c7?auto=format&fit=crop&q=80&w=800' },
-    { id: '4', name: 'Urban Utility Jacket', price: 120.00, image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&q=80&w=800' },
-  ];
+    { id: '4', name: 'Urban Utility Jacket', price: 120.00, image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&q=80&w=800' }
+  ]);
+  
+  React.useEffect(() => {
+    fetch('http://localhost:5000/api/products')
+      .then(r => r.json())
+      .then(data => {
+        if(data.length > 0) setFeatured(data.slice(0, 4).map(p => ({ ...p, image: p.imageUrl })));
+      })
+      .catch(e => console.log('Using robust mock data.'));
+  }, []);
   
   const { addToCart } = useApp();
 
