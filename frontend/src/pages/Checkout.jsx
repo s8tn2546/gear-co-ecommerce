@@ -20,7 +20,8 @@ export default function Checkout() {
 
     try {
       const address = `${e.target[0].value} ${e.target[1].value}, ${e.target[2].value}, ${e.target[3].value}, ${e.target[4].value}`;
-      await axios.post('http://localhost:5000/api/checkout', { shippingAddress: address });
+      const cartItems = cart.map(item => ({ productId: item.id, quantity: item.quantity }));
+      await axios.post('http://localhost:5000/api/checkout', { shippingAddress: address, cartItems });
       clearCart();
       setComplete(true);
     } catch (err) {

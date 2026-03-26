@@ -25,34 +25,36 @@ router.get('/orders', auth, async (req, res) => {
 // @desc    Checkout cart and create an order
 // @access  Private
 router.post('/', auth, async (req, res) => {
-  const { shippingAddress } = req.body;
+  const { shippingAddress, cartItems } = req.body;
   
   if (!shippingAddress) {
     return res.status(400).json({ msg: 'Shipping address is required' });
   }
+  if (!cartItems || cartItems.length === 0) {
+    return res.status(400).json({ msg: 'Cart is empty' });
+  }
 
   try {
-    // 1. Get user cart
-    const cart = await prisma.cart.findUnique({
-      where: { userId: req.user.id },
-      include: { items: { include: { product: true } } }
-    });
-
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ msg: 'Cart is empty' });
+    let totalAmount = 0;
+    const orderItemsData = [];
+    
+    for (const item of cartItems) {
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) continue;
+      
+      const itemTotal = item.quantity * product.price;
+      totalAmount += itemTotal;
+      
+      orderItemsData.push({
+        productId: product.id,
+        quantity: item.quantity,
+        price: product.price
+      });
     }
 
-    // 2. Calculate total amount and prepare order items
-    let totalAmount = 0;
-    const orderItemsData = cart.items.map(cartItem => {
-      const itemTotal = cartItem.quantity * cartItem.product.price;
-      totalAmount += itemTotal;
-      return {
-        productId: cartItem.productId,
-        quantity: cartItem.quantity,
-        price: cartItem.product.price
-      };
-    });
+    if (orderItemsData.length === 0) {
+      return res.status(400).json({ msg: 'Invalid cart items' });
+    }
 
     // 3. Create order transactionally to ensure data integrity
     const order = await prisma.$transaction(async (tx) => {
@@ -70,17 +72,20 @@ router.post('/', auth, async (req, res) => {
       });
 
       // Update product stock
-      for (const item of cart.items) {
+      for (const item of orderItemsData) {
         await tx.product.update({
           where: { id: item.productId },
           data: { stock: { decrement: item.quantity } }
         });
       }
 
-      // Clear the cart items
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id }
-      });
+      // Try to clean up local DB cart if it actually existed
+      try {
+        const dbCart = await tx.cart.findUnique({ where: { userId: req.user.id } });
+        if (dbCart) {
+          await tx.cartItem.deleteMany({ where: { cartId: dbCart.id } });
+        }
+      } catch (e) {}
 
       return newOrder;
     });
