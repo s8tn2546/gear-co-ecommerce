@@ -15,7 +15,7 @@ export function AppProvider({ children }) {
     const savedToken = localStorage.getItem('token');
     if (savedCart) setCart(JSON.parse(savedCart));
     if (savedUser) setUser(JSON.parse(savedUser));
-    if (savedToken) axios.defaults.headers.common['x-auth-token'] = savedToken;
+    if (savedToken) axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
   }, []);
 
   // Save to local storage on change
@@ -63,7 +63,7 @@ export function AppProvider({ children }) {
       const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
       setUser(res.data.user);
       localStorage.setItem('token', res.data.token);
-      axios.defaults.headers.common['x-auth-token'] = res.data.token;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       showToast('Welcome back, ' + res.data.user.name);
       return true;
     } catch (err) {
@@ -77,7 +77,7 @@ export function AppProvider({ children }) {
       const res = await axios.post('http://localhost:5000/api/auth/register', { name, email, password });
       setUser(res.data.user);
       localStorage.setItem('token', res.data.token);
-      axios.defaults.headers.common['x-auth-token'] = res.data.token;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       showToast('Account created for ' + res.data.user.name);
       return true;
     } catch (err) {
@@ -89,7 +89,7 @@ export function AppProvider({ children }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('token');
-    delete axios.defaults.headers.common['x-auth-token'];
+    delete axios.defaults.headers.common['Authorization'];
     showToast('Logged out successfully', 'info');
   };
 
